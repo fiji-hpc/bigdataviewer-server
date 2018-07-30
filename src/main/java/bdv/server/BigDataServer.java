@@ -15,13 +15,20 @@ import org.eclipse.jetty.server.handler.StatisticsHandler;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import bdv.server.BigDataServer.Parameters;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +78,7 @@ public class BigDataServer
 		final boolean enableManagerContext = false;
 		return new Parameters( port, hostname, new HashMap< String, String >(), thumbnailDirectory, enableManagerContext );
 	}
-
+	
 	public static void main( final String[] args ) throws Exception
 	{
 		System.setProperty( "org.eclipse.jetty.util.log.class", "org.eclipse.jetty.util.log.StdErrLog" );
@@ -118,14 +125,18 @@ public class BigDataServer
 		server.setHandler( handler );
 		LOG.info( "Server Base URL: " + baseURL );
 		LOG.info( "BigDataServer starting" );
+		
+		ConfigurationFileWatcher configurationFileWatcher = new ConfigurationFileWatcher(server, args, baseURL, params, thumbnailsDirectoryName);
+		configurationFileWatcher.start();
+		
 		server.start();
 		server.join();
 	}
-
+	
 	/**
 	 * Server parameters: hostname, port, datasets.
 	 */
-	private static class Parameters
+	public static class Parameters
 	{
 		private final int port;
 
@@ -181,7 +192,7 @@ public class BigDataServer
 	}
 
 	@SuppressWarnings( "static-access" )
-	static private Parameters processOptions( final String[] args, final Parameters defaultParameters ) throws IOException
+	static Parameters processOptions( final String[] args, final Parameters defaultParameters ) throws IOException
 	{
 		// create Options object
 		final Options options = new Options();
@@ -351,7 +362,7 @@ public class BigDataServer
 		return thumbnails.toFile().getAbsolutePath();
 	}
 
-	private static ContextHandlerCollection createHandlers( final String baseURL, final Map< String, String > dataSet, final String thumbnailsDirectoryName ) throws SpimDataException, IOException
+	public static ContextHandlerCollection createHandlers( final String baseURL, final Map< String, String > dataSet, final String thumbnailsDirectoryName ) throws SpimDataException, IOException
 	{
 		final ContextHandlerCollection handlers = new ContextHandlerCollection();
 
