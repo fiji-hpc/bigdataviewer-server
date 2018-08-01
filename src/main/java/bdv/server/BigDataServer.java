@@ -15,20 +15,13 @@ import org.eclipse.jetty.server.handler.StatisticsHandler;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import bdv.server.BigDataServer.Parameters;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +69,9 @@ public class BigDataServer
 		}
 		final String thumbnailDirectory = null;
 		final boolean enableManagerContext = false;
-		return new Parameters( port, hostname, new HashMap< String, String >(), thumbnailDirectory, enableManagerContext );
+		final boolean disableJson = false;
+		final String watchDirectory = System.getProperty("user.dir");
+		return new Parameters( port, hostname, new HashMap< String, String >(), thumbnailDirectory, watchDirectory, enableManagerContext, disableJson );
 	}
 	
 	public static void main( final String[] args ) throws Exception
@@ -105,7 +100,7 @@ public class BigDataServer
 
 		final ContextHandlerCollection datasetHandlers = createHandlers( baseURL, params.getDatasets(), thumbnailsDirectoryName );
 		handlers.addHandler( datasetHandlers );
-		handlers.addHandler( new JsonDatasetListHandler( server, datasetHandlers ) );
+		if (!params.disableJson()) handlers.addHandler( new JsonDatasetListHandler( server, datasetHandlers ) );
 
 		Handler handler = handlers;
 		if ( params.enableManagerContext() )
@@ -150,14 +145,21 @@ public class BigDataServer
 		private final String thumbnailDirectory;
 
 		private final boolean enableManagerContext;
+		
+		private final boolean disableJson;
+		
+		private final String watchDirectory;
 
-		Parameters( final int port, final String hostname, final Map< String, String > datasetNameToXml, final String thumbnailDirectory, final boolean enableManagerContext )
+		Parameters( final int port, final String hostname, final Map< String, String > datasetNameToXml, final String thumbnailDirectory, String watchDirectory, final boolean enableManagerContext, boolean disableJson )
 		{
 			this.port = port;
 			this.hostname = hostname;
+			this.watchDirectory = watchDirectory;
 			this.datasetNameToXml = datasetNameToXml;
 			this.thumbnailDirectory = thumbnailDirectory;
+			this.disableJson = disableJson;
 			this.enableManagerContext = enableManagerContext;
+		   
 		}
 
 		public int getPort()
@@ -175,6 +177,11 @@ public class BigDataServer
 			return thumbnailDirectory;
 		}
 
+		public String getWatchDirectory()
+		{
+			return watchDirectory;
+		}
+		
 		/**
 		 * Get datasets.
 		 *
@@ -188,6 +195,10 @@ public class BigDataServer
 		public boolean enableManagerContext()
 		{
 			return enableManagerContext;
+		}
+		
+		public boolean disableJson() {
+			return disableJson;
 		}
 	}
 
@@ -228,6 +239,16 @@ public class BigDataServer
 				.withArgName( "DIRECTORY" )
 				.create( "t" ) );
 
+		options.addOption( OptionBuilder
+				.withDescription( "Watch directory for changes and newly created XML files" )
+				.hasArg()
+				.withArgName( "WATCHDIRECTORY" )
+				.create( "w" ) );
+
+		options.addOption( OptionBuilder
+				.withDescription( "Disable JSON index (/json/)" )
+				.create( "nojson" ) );
+		
 		if ( Constants.ENABLE_EXPERIMENTAL_FEATURES )
 		{
 			options.addOption( OptionBuilder
@@ -247,6 +268,8 @@ public class BigDataServer
 			// Getting server name option
 			final String serverName = cmd.getOptionValue( "s", defaultParameters.getHostname() );
 
+			final String watchDirectory = cmd.getOptionValue("w", defaultParameters.getWatchDirectory());
+			
 			// Getting thumbnail directory option
 			final String thumbnailDirectory = cmd.getOptionValue( "t", defaultParameters.getThumbnailDirectory() );
 
@@ -259,6 +282,10 @@ public class BigDataServer
 					enableManagerContext = true;
 			}
 
+			boolean disableJson = false;
+			if (cmd.hasOption("nojson"))
+				disableJson = true;
+			
 			if ( cmd.hasOption( "d" ) )
 			{
 				// process the file given with "-d"
@@ -302,10 +329,11 @@ public class BigDataServer
 				tryAddDataset( datasets, name, xmlpath );
 			}
 
-			if ( datasets.isEmpty() )
-				throw new IllegalArgumentException( "Dataset list is empty." );
+			// now we have watch directory
+			// if ( datasets.isEmpty() )
+			//	throw new IllegalArgumentException( "Dataset list is empty." );
 
-			return new Parameters( port, serverName, datasets, thumbnailDirectory, enableManagerContext );
+			return new Parameters( port, serverName, datasets, thumbnailDirectory, watchDirectory, enableManagerContext, disableJson );
 		}
 		catch ( final ParseException | IllegalArgumentException e )
 		{
