@@ -96,7 +96,7 @@ public class BigDataServer
 		final String baseURL = "http://" + server.getURI().getHost() + ":" + params.getPort();
 
 		// Handler initialization
-		final HandlerCollection handlers = new HandlerCollection();
+		final HandlerCollection handlers = new HandlerCollection(true);
 
 		final ContextHandlerCollection datasetHandlers = createHandlers( baseURL, params.getDatasets(), thumbnailsDirectoryName );
 		handlers.addHandler( datasetHandlers );
@@ -121,7 +121,7 @@ public class BigDataServer
 		LOG.info( "Server Base URL: " + baseURL );
 		LOG.info( "BigDataServer starting" );
 		
-		ConfigurationFileWatcher configurationFileWatcher = new ConfigurationFileWatcher(server, args, baseURL, params, thumbnailsDirectoryName);
+		ConfigurationFileWatcher configurationFileWatcher = new ConfigurationFileWatcher(server, args, baseURL, params, thumbnailsDirectoryName, handlers);
 		configurationFileWatcher.start();
 		
 		server.start();

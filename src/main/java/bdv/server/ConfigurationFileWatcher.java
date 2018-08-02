@@ -31,15 +31,17 @@ public class ConfigurationFileWatcher extends Thread {
 	String thumbnailsDirectoryName;
 	String baseURL;
 	String[] args;
+	HandlerCollection handlers;
 
 	private static final org.eclipse.jetty.util.log.Logger LOG = Log.getLogger(BigDataServer.class);
 
 	public ConfigurationFileWatcher(Server server, String[] args, String baseURL, Parameters params,
-			String thumbnailsDirectoryName) {
+			String thumbnailsDirectoryName, HandlerCollection handlers) {
 		this.server = server;
 		this.baseURL = baseURL;
 		this.params = params;
 		this.args = args;
+		this.handlers = handlers;
 		this.thumbnailsDirectoryName = thumbnailsDirectoryName;
 	}
 
@@ -64,7 +66,6 @@ public class ConfigurationFileWatcher extends Thread {
 			try {
 
 				final Parameters params = BigDataServer.processOptions(args, BigDataServer.getDefaultParameters());
-				final HandlerCollection handlers = new HandlerCollection();
 				final File dir = new File(FileSystems.getDefault().getPath(params.getWatchDirectory()).toString());
 
 				List<File> files = (List<File>) FileUtils.listFiles(dir, extensions, true);
@@ -89,28 +90,17 @@ public class ConfigurationFileWatcher extends Thread {
 				}
 
 				if (newFilesFound) {
-
 					final ContextHandlerCollection datasetHandlers = BigDataServer.createHandlers(baseURL,
 							generatedDatasets, thumbnailsDirectoryName);
 					handlers.addHandler(datasetHandlers);
-					if (!params.disableJson())
-						handlers.addHandler(new JsonDatasetListHandler(server, datasetHandlers));
-
-					server.stop();
-
-					for (Handler h : server.getChildHandlers()) {
-						h.destroy();
-					}
-
-					server.setHandler(handlers);
-					server.start();
+					datasetHandlers.start();
 				}
 
 			} catch (Exception e) {
 				LOG.warn(e.getMessage());
 			}
 			try {
-				Thread.sleep(60000);
+				Thread.sleep(30000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
