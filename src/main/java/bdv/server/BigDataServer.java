@@ -399,9 +399,13 @@ public class BigDataServer
 			final String name = entry.getKey();
 			final String xmlpath = entry.getValue();
 			final String context = "/" + name;
-			final CellHandler ctx = new CellHandler( baseURL + context + "/", xmlpath, name, thumbnailsDirectoryName );
-			ctx.setContextPath( context );
-			handlers.addHandler( ctx );
+			try {
+				final CellHandler ctx = new CellHandler( baseURL + context + "/", xmlpath, name, thumbnailsDirectoryName );
+				ctx.setContextPath( context );
+				handlers.addHandler( ctx );
+			} catch (Exception e) {
+				LOG.warn("Exception raised during creating new CellHandler. " + e.getMessage());
+			}
 		}
 
 		return handlers;

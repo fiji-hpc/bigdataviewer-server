@@ -67,11 +67,6 @@ public class ConfigurationFileWatcher extends Thread {
 				List<File> files = (List<File>) FileUtils.listFiles(dir, extensions, true);
 				for (File file : files) {
 
-					if (file.getCanonicalPath().toString().contains("_output_define"))
-						continue;
-					if (file.getCanonicalPath().toString().contains("singleChannel_first"))
-						continue;
-
 					System.out.println("file: " + file.getCanonicalPath());
 
 					MessageDigest digest = MessageDigest.getInstance("SHA-1");
