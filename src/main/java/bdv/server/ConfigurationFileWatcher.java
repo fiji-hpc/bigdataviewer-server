@@ -58,6 +58,9 @@ public class ConfigurationFileWatcher extends Thread {
 		final String[] extensions = new String[] { "xml" };
 
 		while (true) {
+
+			boolean newFilesFound = false;
+
 			try {
 
 				final Parameters params = BigDataServer.processOptions(args, BigDataServer.getDefaultParameters());
@@ -75,27 +78,33 @@ public class ConfigurationFileWatcher extends Thread {
 							file.getCanonicalPath().toString().replace("/scratch/temp/HaasFiji/", "").getBytes("utf8"));
 					String sha1 = String.format("%040x", new BigInteger(1, digest.digest()));
 
-					generatedDatasets.put(sha1, file.getCanonicalPath().toString());
-
-					LOG.info("Reloading server with new configuration, added " + sha1 + " " + "("
-							+ file.getCanonicalPath().toString().replace("/scratch/temp/HaasFiji/", "") + " ) - "
-							+ file.getCanonicalPath().toString());
+					if (!generatedDatasets.containsKey(sha1)) {
+						generatedDatasets.put(sha1, file.getCanonicalPath().toString());
+						newFilesFound = true;
+						
+						LOG.info("Reloading server with new configuration, added " + sha1 + " " + "("
+								+ file.getCanonicalPath().toString().replace("/scratch/temp/HaasFiji/", "") + " ) - "
+								+ file.getCanonicalPath().toString());
+					}
 				}
 
-				final ContextHandlerCollection datasetHandlers = BigDataServer.createHandlers(baseURL,
-						generatedDatasets, thumbnailsDirectoryName);
-				handlers.addHandler(datasetHandlers);
-				if (!params.disableJson())
-					handlers.addHandler(new JsonDatasetListHandler(server, datasetHandlers));
+				if (newFilesFound) {
 
-				server.stop();
+					final ContextHandlerCollection datasetHandlers = BigDataServer.createHandlers(baseURL,
+							generatedDatasets, thumbnailsDirectoryName);
+					handlers.addHandler(datasetHandlers);
+					if (!params.disableJson())
+						handlers.addHandler(new JsonDatasetListHandler(server, datasetHandlers));
 
-				for (Handler h : server.getChildHandlers()) {
-					h.destroy();
+					server.stop();
+
+					for (Handler h : server.getChildHandlers()) {
+						h.destroy();
+					}
+
+					server.setHandler(handlers);
+					server.start();
 				}
-
-				server.setHandler(handlers);
-				server.start();
 
 			} catch (Exception e) {
 				LOG.warn(e.getMessage());
