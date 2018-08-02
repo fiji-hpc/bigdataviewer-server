@@ -70,7 +70,7 @@ public class ConfigurationFileWatcher extends Thread {
 				List<File> files = (List<File>) FileUtils.listFiles(dir, extensions, true);
 				for (File file : files) {
 
-					System.out.println("file: " + file.getCanonicalPath());
+					//System.out.println("file: " + file.getCanonicalPath());
 
 					MessageDigest digest = MessageDigest.getInstance("SHA-1");
 					digest.reset();
