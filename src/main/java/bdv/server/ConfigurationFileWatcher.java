@@ -54,6 +54,15 @@ public class ConfigurationFileWatcher extends Thread {
 		}
 	}
 
+	public long getLastModificationDateOfFilesInDir(File dir) {
+		List<File> files = (List<File>) FileUtils.listFiles(dir, null, true);
+		long lastModificationTime = 0;
+		for (File file : files) {
+			if (file.lastModified() > lastModificationTime) lastModificationTime = file.lastModified();
+		}
+		return lastModificationTime;
+	}
+	
 	public void run() {
 
 		Map<String, String> generatedDatasets = new HashMap<String, String>(params.getDatasets());
@@ -73,8 +82,8 @@ public class ConfigurationFileWatcher extends Thread {
 				for (File file : files) {
 					
 					long currentMillis = System.currentTimeMillis();
-					if (currentMillis - file.lastModified() <  30000) {
-						LOG.warn("Skipping file " + file.getCanonicalPath().toString() + " modified just 30s ago.");
+					if (currentMillis - getLastModificationDateOfFilesInDir(file.getParentFile()) <  60000) {
+						LOG.warn("Skipping file " + file.getCanonicalPath().toString() + ", directory contents modified just 60s ago.");
 						continue;
 					}
 					//System.out.println("file: " + file.getCanonicalPath());
@@ -108,7 +117,7 @@ public class ConfigurationFileWatcher extends Thread {
 				LOG.warn(e.getMessage());
 			}
 			try {
-				Thread.sleep(30000);
+				Thread.sleep(60000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
