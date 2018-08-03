@@ -57,6 +57,7 @@ public class ConfigurationFileWatcher extends Thread {
 	public void run() {
 
 		Map<String, String> generatedDatasets = new HashMap<String, String>(params.getDatasets());
+		Map<String, String> newDatasets = new HashMap<String, String>();
 		final String[] extensions = new String[] { "xml" };
 
 		while (true) {
@@ -86,6 +87,7 @@ public class ConfigurationFileWatcher extends Thread {
 
 					if (!generatedDatasets.containsKey(sha1)) {
 						generatedDatasets.put(sha1, file.getCanonicalPath().toString());
+						newDatasets.put(sha1, file.getCanonicalPath().toString());
 						newFilesFound = true;
 						
 						LOG.info("Reloading server with new configuration, added " + sha1 + " " + "("
@@ -96,9 +98,10 @@ public class ConfigurationFileWatcher extends Thread {
 
 				if (newFilesFound) {
 					final ContextHandlerCollection datasetHandlers = BigDataServer.createHandlers(baseURL,
-							generatedDatasets, thumbnailsDirectoryName);
+							newDatasets, thumbnailsDirectoryName);
 					handlers.addHandler(datasetHandlers);
 					datasetHandlers.start();
+					newDatasets.clear();
 				}
 
 			} catch (Exception e) {
