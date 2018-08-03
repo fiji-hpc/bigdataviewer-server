@@ -70,7 +70,12 @@ public class ConfigurationFileWatcher extends Thread {
 
 				List<File> files = (List<File>) FileUtils.listFiles(dir, extensions, true);
 				for (File file : files) {
-
+					
+					long currentMillis = System.currentTimeMillis();
+					if (currentMillis - file.lastModified() <  30000) {
+						LOG.warn("Skipping file " + file.getCanonicalPath().toString() + " modified just 30s ago.");
+						continue;
+					}
 					//System.out.println("file: " + file.getCanonicalPath());
 
 					MessageDigest digest = MessageDigest.getInstance("SHA-1");
