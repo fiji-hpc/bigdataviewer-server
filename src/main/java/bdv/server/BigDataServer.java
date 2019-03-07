@@ -121,8 +121,8 @@ public class BigDataServer
 		LOG.info( "Server Base URL: " + baseURL );
 		LOG.info( "BigDataServer starting" );
 		
-		ConfigurationFileWatcher configurationFileWatcher = new ConfigurationFileWatcher(server, args, baseURL, params, thumbnailsDirectoryName, handlers);
-		configurationFileWatcher.start();
+		DirectoryFileWatcher directoryFileWatcher = new DirectoryFileWatcher(args, baseURL, params, thumbnailsDirectoryName, handlers);
+		directoryFileWatcher.start();
 		
 		server.start();
 		server.join();
